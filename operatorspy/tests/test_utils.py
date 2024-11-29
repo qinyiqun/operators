@@ -22,5 +22,10 @@ def get_args():
         action="store_true",
         help="Run ASCEND NPU test",
     )
+    parser.add_argument(
+        "--musa",
+        action="store_true",
+        help="Run MUSA test",
+    )
 
     return parser.parse_args()
