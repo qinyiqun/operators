@@ -14,6 +14,9 @@
 #ifdef ENABLE_ASCEND_NPU
 #include "ascend/random_sample_aclnn.h"
 #endif
+#ifdef ENABLE_MT_GPU
+#include "musa/random_sample_musa.h"
+#endif
 
 __C infiniopStatus_t infiniopCreateRandomSampleDescriptor(infiniopHandle_t handle, infiniopRandomSampleDescriptor_t *desc_ptr, infiniopTensorDescriptor_t result, infiniopTensorDescriptor_t probs) {
     switch (handle->device) {
@@ -37,6 +40,10 @@ __C infiniopStatus_t infiniopCreateRandomSampleDescriptor(infiniopHandle_t handl
             return aclnnCreateRandomSampleDescriptor((AscendHandle_t) handle,
                                                      (RandomSampleAclnnDescriptor_t *) desc_ptr, result, probs);
         }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu:
+            return musaCreateRandomSampleDescriptor((MusaHandle_t) handle, (RandomSampleMusaDescriptor_t *) desc_ptr, result, probs);
 #endif
     }
     return STATUS_BAD_DEVICE;
@@ -63,6 +70,11 @@ __C infiniopStatus_t infiniopGetRandomSampleWorkspaceSize(infiniopRandomSampleDe
 #ifdef ENABLE_ASCEND_NPU
         case DevAscendNpu: {
             return aclnnGetRandomSampleWorkspaceSize((RandomSampleAclnnDescriptor_t) desc, size);
+        }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaGetRandomSampleWorkspaceSize((RandomSampleMusaDescriptor_t) desc, size);
         }
 #endif
     }
@@ -98,6 +110,10 @@ __C infiniopStatus_t infiniopRandomSample(infiniopRandomSampleDescriptor_t desc,
             return aclnnRandomSample((RandomSampleAclnnDescriptor_t) desc, workspace, workspace_size, result, probs, random_val, topp, topk, temperature, stream);
         }
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu:
+            return musaRandomSample((RandomSampleMusaDescriptor_t) desc, workspace, workspace_size, result, probs, random_val, topp, topk, temperature, stream);
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -121,6 +137,10 @@ __C infiniopStatus_t infiniopDestroyRandomSampleDescriptor(infiniopRandomSampleD
         case DevAscendNpu: {
             return aclnnDestroyRandomSampleDescriptor((RandomSampleAclnnDescriptor_t) desc);
         }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu:
+            return musaDestroyRandomSampleDescriptor((RandomSampleMusaDescriptor_t) desc);
 #endif
     }
     return STATUS_BAD_DEVICE;
