@@ -17,6 +17,9 @@
 #ifdef ENABLE_ASCEND_NPU
 #include "ascend/rearrange_aclnn.h"
 #endif
+#ifdef ENABLE_MT_GPU
+#include "musa/rearrange_musa.h"
+#endif
 
 __C infiniopStatus_t infiniopCreateRearrangeDescriptor(
     infiniopHandle_t handle,
@@ -45,6 +48,11 @@ __C infiniopStatus_t infiniopCreateRearrangeDescriptor(
                                                   (RearrangeAclnnDescriptor_t *) desc_ptr,
                                                   dst,
                                                   src);
+        }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaCreateRearrangeDescriptor((MusaHandle_t)handle, (RearrangeMusaDescriptor_t *) desc_ptr, dst, src);
         }
 #endif
     }
@@ -76,6 +84,11 @@ __C infiniopStatus_t infiniopRearrange(infiniopRearrangeDescriptor_t desc, void 
                                   stream);
         }
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaRearrange((RearrangeMusaDescriptor_t) desc, dst, src, stream);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -100,6 +113,11 @@ __C infiniopStatus_t infiniopDestroyRearrangeDescriptor(infiniopRearrangeDescrip
 #ifdef ENABLE_ASCEND_NPU
         case DevAscendNpu: {
             return aclnnDestroyRearrangeDescriptor((RearrangeAclnnDescriptor_t) desc);
+        }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaDestroyRearrangeDescriptor((RearrangeMusaDescriptor_t) desc);
         }
 #endif
     }
