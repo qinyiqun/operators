@@ -18,6 +18,10 @@
 #ifdef ENABLE_ASCEND_NPU
 #include "ascend/causal_softmax_aclnn.h"
 #endif
+#ifdef ENABLE_MT_GPU
+#include "musa/causal_softmax_musa.h"
+#include "../../devices/musa/common_musa.h"
+#endif
 
 __C infiniopStatus_t infiniopCreateCausalSoftmaxDescriptor(
     infiniopHandle_t handle,
@@ -43,6 +47,11 @@ __C infiniopStatus_t infiniopCreateCausalSoftmaxDescriptor(
 #ifdef ENABLE_ASCEND_NPU
         case DevAscendNpu: {
             return aclnnCreateCausalSoftmaxDescriptor((AscendHandle_t) handle, (CausalSoftmaxAclnnDescriptor_t *) desc_ptr, y_desc);
+        }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaCreateCausalSoftmaxDescriptor((MusaHandle_t) handle, (CausalSoftmaxMusaDescriptor_t *) desc_ptr, y_desc);
         }
 #endif
     }
@@ -73,6 +82,11 @@ __C infiniopStatus_t infiniopGetCausalSoftmaxWorkspaceSize(infiniopCausalSoftmax
             return aclnnGetCausalSoftmaxWorkspaceSize((CausalSoftmaxAclnnDescriptor_t) desc, size);
         }
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaGetCausalSoftmaxWorkspaceSize((CausalSoftmaxMusaDescriptor_t) desc, size);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -98,6 +112,11 @@ __C infiniopStatus_t infiniopCausalSoftmax(infiniopCausalSoftmaxDescriptor_t des
 #ifdef ENABLE_ASCEND_NPU
         case DevAscendNpu: {
             return aclnnCausalSoftmax((CausalSoftmaxAclnnDescriptor_t) desc, workspace, workspace_size, data, stream);
+        }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaCausalSoftmax((CausalSoftmaxMusaDescriptor_t) desc, workspace, workspace_size, data, stream);
         }
 #endif
     }
@@ -126,6 +145,10 @@ __C infiniopStatus_t infiniopDestroyCausalSoftmaxDescriptor(infiniopCausalSoftma
         case DevAscendNpu: {
             return aclnnDestroyCausalSoftmaxDescriptor((CausalSoftmaxAclnnDescriptor_t) desc);
         }
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu:
+            return musaDestroyCausalSoftmaxDescriptor((CausalSoftmaxMusaDescriptor_t) desc);
 #endif
     }
     return STATUS_BAD_DEVICE;
