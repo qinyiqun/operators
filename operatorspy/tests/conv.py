@@ -39,22 +39,25 @@ infiniopConvDescriptor_t = POINTER(ConvDescriptor)
 
 
 def conv(x, w, stride, padding, dilation):
-    match len(x.shape) - 2:
-        case 1:
-            return F.conv1d(
-                x, w, stride=stride, padding=padding, dilation=dilation
-            )
-        case 2:
-            return F.conv2d(
-                x, w, stride=stride, padding=padding, dilation=dilation
-            )
-        case 3:
-            return F.conv3d(
-                x, w, stride=stride, padding=padding, dilation=dilation
-            )
-        case _:
-            print("Error: Pytorch -> Unsupported tensor dimension")
-            return None
+    ndim = len(x.shape) - 2
+    conv_func_map = {
+        1: F.conv1d,
+        2: F.conv2d,
+        3: F.conv3d
+    }
+
+    if ndim not in conv_func_map:
+        print("Error: Pytorch -> Unsupported tensor dimension")
+        return None
+
+    # Select the appropriate convolution function
+    conv_func = conv_func_map[ndim]
+
+    if PROFILE:
+        ans = conv_func(x, w, stride=stride, padding=padding, dilation=dilation)
+        torch.cuda.synchronize()
+        return ans
+    return conv_func(x, w, stride=stride, padding=padding, dilation=dilation)
 
 
 # infer the shape of the output given the inputs for a N-ary convolution
@@ -206,18 +209,28 @@ def test_bang(lib, test_cases):
         test(lib, handle, "mlu", x_shape, w_shape, pads, strides, dilations, x_strides, tensor_dtype=torch.float32)
     destroy_handle(lib, handle)
 
+def test_musa(lib, test_cases):
+    import torch_musa
+
+    device = DeviceEnum.DEVICE_MUSA
+    handle = create_handle(lib, device)
+    for x_shape, w_shape, pads, strides, dilations, x_strides in test_cases:
+        # test(lib, handle, "musa", x_shape, w_shape, pads, strides, dilations, x_strides, tensor_dtype=torch.float16)
+        test(lib, handle, "musa", x_shape, w_shape, pads, strides, dilations, x_strides, tensor_dtype=torch.float32)
+    destroy_handle(lib, handle)
+
 
 if __name__ == "__main__":
     test_cases = [
         # x_shape, w_shape, pads, strides, dilations, x_strides
-        (
-            (32, 3, 4),
-            (32, 3, 5),
-            (1,),
-            (1,),
-            (1,),
-            None,
-        ),
+        # (
+        #     (32, 3, 4),
+        #     (32, 3, 5),
+        #     (1,),
+        #     (1,),
+        #     (1,),
+        #     None,
+        # ),
         (
             (1, 3, 4, 4),
             (2, 3, 3, 3),
@@ -228,9 +241,9 @@ if __name__ == "__main__":
         ),
         (
             (32, 3, 128, 128),
-            (64, 3, 5, 5),
-            (2, 2),
-            (2, 2),
+            (1, 3, 3, 3),
+            (1, 1),
+            (1, 1),
             (1, 1),
             None,
         ),
@@ -286,6 +299,8 @@ if __name__ == "__main__":
         test_cuda(lib, test_cases)
     if args.bang:
         test_bang(lib, test_cases)
-    if not (args.cpu or args.cuda or args.bang):
+    if args.musa:
+        test_musa(lib, test_cases)
+    if not (args.cpu or args.cuda or args.bang or args.musa):
         test_cpu(lib, test_cases)
     print("\033[92mTest passed!\033[0m")

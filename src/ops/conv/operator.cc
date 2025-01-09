@@ -9,6 +9,9 @@
 #include "../../devices/cuda/cuda_handle.h"
 #include "cuda/conv.cuh"
 #endif
+#ifdef ENABLE_MT_GPU
+#include "musa/conv_musa.h"
+#endif
 
 __C infiniopStatus_t infiniopCreateConvDescriptor(
     infiniopHandle_t handle,
@@ -34,6 +37,11 @@ __C infiniopStatus_t infiniopCreateConvDescriptor(
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaCreateConvDescriptor((MusaHandle_t) handle, (ConvMusaDescriptor_t *) desc_ptr, y, x, w, pads, strides, dilations, n);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -52,6 +60,12 @@ __C infiniopStatus_t infiniopGetConvWorkspaceSize(infiniopConvDescriptor_t desc,
 #endif
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaGetConvWorkspaceSize((ConvMusaDescriptor_t) desc, size);
+        }
+
 #endif
     }
     return STATUS_BAD_DEVICE;
@@ -72,6 +86,11 @@ __C infiniopStatus_t infiniopConv(infiniopConvDescriptor_t desc, void *workspace
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaConv((ConvMusaDescriptor_t) desc, workspace, workspace_size, y, x, w, stream);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -90,6 +109,11 @@ __C infiniopStatus_t infiniopDestroyConvDescriptor(infiniopConvDescriptor_t desc
 #endif
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaDestroyConvDescriptor((ConvMusaDescriptor_t) desc);
+        }
 #endif
     }
     return STATUS_BAD_DEVICE;

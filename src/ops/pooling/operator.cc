@@ -13,6 +13,9 @@
 #ifdef ENABLE_CAMBRICON_MLU
 // TODO
 #endif
+#ifdef ENABLE_MT_GPU
+#include "musa/pooling_musa.h"
+#endif
 
 __C infiniopStatus_t infiniopCreatePoolingDescriptor(
     infiniopHandle_t handle,
@@ -38,6 +41,11 @@ __C infiniopStatus_t infiniopCreatePoolingDescriptor(
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaCreatePoolingDescriptor((MusaHandle_t) handle, (PoolingMusaDescriptor_t *) desc_ptr, y, x, kernel_shape, pads, strides, n, pooling_type);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -58,6 +66,11 @@ __C infiniopStatus_t infiniopGetPoolingWorkspaceSize(infiniopPoolingDescriptor_t
         // TODO
 
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaGetPoolingWorkspaceSize((PoolingMusaDescriptor_t) desc, size);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -77,6 +90,11 @@ __C infiniopStatus_t infiniopPooling(infiniopPoolingDescriptor_t desc, void *wor
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
 #endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaPooling((PoolingMusaDescriptor_t) desc, workspace, workspace_size, y, x, stream);
+        }
+#endif
     }
     return STATUS_BAD_DEVICE;
 }
@@ -95,6 +113,11 @@ __C infiniopStatus_t infiniopDestroyPoolingDescriptor(infiniopPoolingDescriptor_
 #endif
 #ifdef ENABLE_CAMBRICON_MLU
         // TODO
+#endif
+#ifdef ENABLE_MT_GPU
+        case DevMtGpu: {
+            return musaDestroyPoolingDescriptor((PoolingMusaDescriptor_t) desc);
+        }
 #endif
     }
     return STATUS_BAD_DEVICE;

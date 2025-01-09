@@ -88,7 +88,7 @@ def test(
 
     x = torch.rand(x_shape, dtype=tensor_dtype).to(torch_device)
     y = torch.rand(inferShape(x_shape, k_shape, padding, strides), dtype=tensor_dtype).to(torch_device)
-
+    
     for i in range(NUM_PRERUN if PROFILE else 1):
         ans = pool(x, k_shape, padding, strides)
     if PROFILE:
@@ -148,7 +148,9 @@ def test(
             )
         elapsed = (time.time() - start_time) / NUM_ITERATIONS
         print(f"    lib time: {elapsed :6f}")
-
+    print(x)
+    print(y)
+    print(ans)
     assert torch.allclose(y, ans, atol=0, rtol=1e-3)
     check_error(lib.infiniopDestroyMaxPoolDescriptor(descriptor))
 
@@ -179,6 +181,16 @@ def test_bang(lib, test_cases):
     for x_shape, kernel_shape, padding, strides in test_cases:
         test(lib, handle, "mlu", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float16)
         test(lib, handle, "mlu", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float32)
+    destroy_handle(lib, handle)
+
+def test_musa(lib, test_cases):
+    import torch_musa
+
+    device = DeviceEnum.DEVICE_MUSA
+    handle = create_handle(lib, device)
+    for x_shape, kernel_shape, padding, strides in test_cases:
+        # test(lib, handle, "musa", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float16)
+        test(lib, handle, "musa", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float32)
     destroy_handle(lib, handle)
 
 
@@ -227,6 +239,8 @@ if __name__ == "__main__":
         test_cuda(lib, test_cases)
     if args.bang:
         test_bang(lib, test_cases)
-    if not (args.cpu or args.cuda or args.bang):
+    if args.musa:
+        test_musa(lib, test_cases)
+    if not (args.cpu or args.cuda or args.bang or args.musa):
         test_cpu(lib, test_cases)
     print("\033[92mTest passed!\033[0m")

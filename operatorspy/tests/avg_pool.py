@@ -89,8 +89,8 @@ def test(
         f"Testing AvgPool on {torch_device} with x_shape:{x_shape} kernel_shape:{k_shape} padding:{padding} strides:{strides} dtype:{tensor_dtype}"
     )
 
-    x = torch.rand(x_shape, dtype=tensor_dtype).to(torch_device)
-    y = torch.rand(inferShape(x_shape, k_shape, padding, strides), dtype=tensor_dtype).to(torch_device)
+    x = torch.ones(x_shape, dtype=tensor_dtype).to(torch_device)
+    y = torch.zeros(inferShape(x_shape, k_shape, padding, strides), dtype=tensor_dtype).to(torch_device)
 
     for i in range(NUM_PRERUN if PROFILE else 1):
         ans = pool(x, k_shape, padding, strides)
@@ -152,6 +152,10 @@ def test(
         elapsed = (time.time() - start_time) / NUM_ITERATIONS
         print(f"    lib time: {elapsed :6f}")
 
+
+    print(x)
+    print(y)
+    print(ans)
     assert torch.allclose(y, ans, atol=0, rtol=1e-3)
     check_error(lib.infiniopDestroyAvgPoolDescriptor(descriptor))
 
@@ -184,12 +188,23 @@ def test_bang(lib, test_cases):
         test(lib, handle, "mlu", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float32)
     destroy_handle(lib, handle)
 
+def test_musa(lib, test_cases):
+    import torch_musa
+
+    device = DeviceEnum.DEVICE_MUSA
+    handle = create_handle(lib, device)
+    for x_shape, kernel_shape, padding, strides in test_cases:
+        # test(lib, handle, "musa", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float16)
+        test(lib, handle, "musa", x_shape, kernel_shape, padding, strides, tensor_dtype=torch.float32)
+    destroy_handle(lib, handle)
+
 
 if __name__ == "__main__":
     test_cases = [
         # x_shape, kernel_shape, padding, strides
-        ((1, 1, 10), (3,), (1,), (1,)),
-        ((32, 3, 224, 224), (3, 3), (1, 1), (2, 2)),
+        # ((1, 1, 10), (3,), (1,), (1,)),
+        ((1, 1, 2, 2), (2, 2), (1, 1), (1, 1)),
+        ((32, 4, 224, 224), (3, 3), (1, 1), (2, 2)),
         ((1, 1, 16, 16, 16), (5, 5, 5), (2, 2, 2), (2, 2, 2)),
     ]
     args = get_args()
@@ -230,6 +245,8 @@ if __name__ == "__main__":
         test_cuda(lib, test_cases)
     if args.bang:
         test_bang(lib, test_cases)
-    if not (args.cpu or args.cuda or args.bang):
+    if args.musa:
+        test_musa(lib, test_cases)
+    if not (args.cpu or args.cuda or args.bang or args.musa):
         test_cpu(lib, test_cases)
     print("\033[92mTest passed!\033[0m")

@@ -69,7 +69,7 @@ __global__ void add(
 }
 
 template<typename Tdata, typename BTdata>
-void _add_nv_gpu(AddMusaDescriptor_t desc, Tdata *c, Tdata const *a, Tdata const *b, uint64_t data_size, uint64_t pack_size, uint64_t offset, void *stream) {
+void _add_mt_gpu(AddMusaDescriptor_t desc, Tdata *c, Tdata const *a, Tdata const *b, uint64_t data_size, uint64_t pack_size, uint64_t offset, void *stream) {
     if (data_size == 0) {
         return;
     }
@@ -92,13 +92,13 @@ infiniopStatus_t add_mt_gpu(AddMusaDescriptor_t desc, void *c, void const *a, vo
     const auto a_vec = reinterpret_cast<const Tdata *>(a);
     const auto b_vec = reinterpret_cast<const Tdata *>(b);
     const auto c_vec = reinterpret_cast<Tdata *>(c);
-    _add_nv_gpu<Tdata, TIdata>(desc, c_vec, a_vec, b_vec, data_size, pack_size, 0, stream);
+    _add_mt_gpu<Tdata, TIdata>(desc, c_vec, a_vec, b_vec, data_size, pack_size, 0, stream);
 
     const auto remainder = desc->c_data_size % pack_size;
     const auto a_ = reinterpret_cast<const TIdata *>(a);
     const auto b_ = reinterpret_cast<const TIdata *>(b);
     const auto c_ = reinterpret_cast<TIdata *>(c);
-    _add_nv_gpu<TIdata, TIdata>(desc, c_, a_, b_, remainder, 1, data_size * pack_size, stream);
+    _add_mt_gpu<TIdata, TIdata>(desc, c_, a_, b_, remainder, 1, data_size * pack_size, stream);
     return STATUS_SUCCESS;
 }
 
